@@ -1,23 +1,37 @@
-const forceDatabaseRefresh = false;
-
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express from 'express';
+import express, { Request, Response } from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import routes from './routes/index.js';
 import { sequelize } from './models/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Serves static files in the entire client's dist folder
-app.use(express.static('../client/dist'));
+// Needed for working with __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Middleware
 app.use(express.json());
 app.use(routes);
 
-sequelize.sync({force: forceDatabaseRefresh}).then(() => {
+// ✅ Serve React static files
+app.use(express.static(path.join(__dirname, '../../client/dist')));
+
+// ✅ Catch-all route for React Router
+app.get('*', (_req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+});
+
+// Sequelize sync
+const forceDatabaseRefresh = false;
+
+sequelize.sync({ force: forceDatabaseRefresh }).then(() => {
   app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
+    console.log(`Server is listening on http://localhost:${PORT}`);
   });
 });
